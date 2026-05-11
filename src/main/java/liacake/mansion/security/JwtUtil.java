@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.List; //surely one day there will be more roles (clueless)
+import java.util.List;
 
 @Component
 public class JwtUtil {
@@ -34,26 +34,12 @@ public class JwtUtil {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token);
+            Jwts.parser().setSigningKey(key).build().parseClaimsJws(token);
             return true;
-        } catch (SignatureException ex) {
-            System.out.println("Invalid JWT signature");
-        } catch (MalformedJwtException ex) {
-            System.out.println("Invalid JWT token");
-        } catch (ExpiredJwtException ex) {
-            System.out.println("Expired JWT token");
-        } catch (UnsupportedJwtException ex) {
-            System.out.println("Unsupported JWT token");
-        } catch (IllegalArgumentException ex) {
-            System.out.println("JWT claims string is empty.");
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
         }
-        return false;
     }
 
-    public SecretKey getKey() {
-        return key;
-    }
+    public SecretKey getKey() { return key; }
 }
