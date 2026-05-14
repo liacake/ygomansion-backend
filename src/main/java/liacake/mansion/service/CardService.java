@@ -117,6 +117,7 @@ public class CardService {
      * @throws RuntimeException if either the old card or the new card is not found.
      */
     @Transactional
+    /** replace all deck references then delete old card */
     public void replaceLocalCardInAllDecksAndDeleteOld(Long oldCardId, Long newCardId) {
         if (oldCardId.equals(newCardId)) {
             throw new IllegalArgumentException("Old card ID and new card ID cannot be the same for replacement.");
