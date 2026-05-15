@@ -26,15 +26,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
+        System.out.println("Authorization header: " + authHeader); //TODO delete
+
         String username = null;
         String jwt = null;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
+            System.out.println("Extracted JWT: " + jwt); //TODO delete
             try {
-                Claims claims = Jwts.parser().verifyWith(jwtUtil.getKey()).build()
-                        .parseSignedClaims(jwt).getPayload();
+                JwtParser parser = Jwts.parser().verifyWith(jwtUtil.getKey()).build();
+                Claims claims = parser.parseSignedClaims(jwt).getPayload();
                 username = claims.getSubject();
+                System.out.println("Extracted username: " + username); //TODO delete
             } catch (JwtException e) {
                 System.out.println("Invalid or expired JWT: " + e.getMessage());
             }
