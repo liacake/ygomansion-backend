@@ -12,12 +12,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = {"http://localhost:4200","http://localhost:5500","http://127.0.0.1:5500"})
 public class AuthenticationController {
 
     @Autowired private AuthenticationManager authenticationManager;
@@ -32,34 +35,58 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest req) {
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthRequest authRequest) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(req.username, req.password));
+                    new UsernamePasswordAuthenticationToken(authRequest.username, authRequest.password));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).body("Incorrect username or password");
         }
-        UserDetails userDetails = userDetailsService.loadUserByUsername(req.username);
-        User user = userRepository.findByUsername(req.username).orElseThrow();
+
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.username);
+        User user = userRepository.findByUsername(authRequest.username).orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Extract roles from UserDetails and convert to List<String>
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-        String jwt = jwtUtil.generateToken(userDetails.getUsername(), user.getId(), roles);
-        return ResponseEntity.ok(Map.of("jwt", jwt));
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        // Pass roles as the third argument to generateToken
+        final String jwt = jwtUtil.generateToken(userDetails.getUsername(), user.getId(), roles);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("jwt", jwt);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody AuthRequest req) {
-        if (userRepository.findByUsername(req.username).isPresent())
+    public ResponseEntity<?> registerUser(@RequestBody AuthRequest authRequest) {
+        if (userRepository.findByUsername(authRequest.username).isPresent()) {
             return ResponseEntity.badRequest().body("Username is already taken");
+        }
+
         User newUser = new User();
-        newUser.setUsername(req.username);
-        newUser.setPassword(passwordEncoder.encode(req.password));
+        newUser.setUsername(authRequest.username);
+        newUser.setPassword(passwordEncoder.encode(authRequest.password));
+        // Reverted: Assign default role "USER" without "ROLE_" prefix
         newUser.setRoles(Collections.singleton("USER"));
+
         userRepository.save(newUser);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(req.username);
+
+        // autologin the newly registered user
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.username);
+
+        // Extract roles from UserDetails (which now includes the "USER" role)
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-        String jwt = jwtUtil.generateToken(userDetails.getUsername(), newUser.getId(), roles);
-        return ResponseEntity.ok(Map.of("jwt", jwt));
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        // Pass roles as the third argument to generateToken
+        final String jwt = jwtUtil.generateToken(userDetails.getUsername(), newUser.getId(), roles);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("jwt", jwt);
+        return ResponseEntity.ok(response);
     }
+
 }
