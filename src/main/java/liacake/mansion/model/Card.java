@@ -23,7 +23,7 @@ public class Card {
     private Integer linkval;
     private String attribute;
     private String race;
-    private String archetype;
+    private String archetype; // added for advanced filtering
 
     @Column(length = 500)
     private String effect;
