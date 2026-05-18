@@ -26,6 +26,9 @@ public class User {
     @Column(length = 1000)
     private String description;
 
+    @Column(length = 1000)
+    private String description;
+
     private String favouriteCard;
 
     @Column(columnDefinition = "TEXT")
