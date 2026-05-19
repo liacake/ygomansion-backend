@@ -42,12 +42,15 @@ public class ColumnMigration {
 
             String dataType = (String) rows.get(0).get("data_type");
             if ("text".equalsIgnoreCase(dataType)) {
-                log.info("ColumnMigration: {}.{} is already TEXT, nothing to do", table, column);
+                // runtime migration fix
+            log.info("ColumnMigration: {}.{} is already TEXT, nothing to do", table, column);
                 return;
             }
 
+            // runtime migration fix
             log.info("ColumnMigration: altering {}.{} from {} to TEXT ...", table, column, dataType);
             jdbc.execute("ALTER TABLE " + table + " ALTER COLUMN " + column + " TYPE TEXT");
+            // runtime migration fix
             log.info("ColumnMigration: {}.{} successfully widened to TEXT", table, column);
 
         } catch (Exception e) {
