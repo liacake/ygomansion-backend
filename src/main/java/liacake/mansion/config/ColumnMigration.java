@@ -8,9 +8,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * One-time migration: widens image_url columns from varchar(255) to TEXT
- * so Base64 data URIs can be stored. Safe to run on every startup —
- * the ALTER is skipped automatically if the column is already TEXT.
+ * One-time migration: widens columns that were too narrow for their actual content.
+ * Safe to run on every startup — each ALTER is skipped if the column is already TEXT.
  */
 @Component
 public class ColumnMigration {
@@ -21,9 +20,11 @@ public class ColumnMigration {
     private JdbcTemplate jdbc;
 
     @PostConstruct
-    public void widenImageUrlColumns() {
-        alterIfNeeded("users", "image_url");
-        alterIfNeeded("cards", "image_url");
+    public void widenColumns() {
+        alterIfNeeded("users",  "image_url");
+        alterIfNeeded("users",  "description");
+        alterIfNeeded("cards",  "image_url");
+        alterIfNeeded("cards",  "effect");
     }
 
     private void alterIfNeeded(String table, String column) {
@@ -42,15 +43,12 @@ public class ColumnMigration {
 
             String dataType = (String) rows.get(0).get("data_type");
             if ("text".equalsIgnoreCase(dataType)) {
-                // runtime migration fix
-            log.info("ColumnMigration: {}.{} is already TEXT, nothing to do", table, column);
+                log.info("ColumnMigration: {}.{} is already TEXT, nothing to do", table, column);
                 return;
             }
 
-            // runtime migration fix
             log.info("ColumnMigration: altering {}.{} from {} to TEXT ...", table, column, dataType);
             jdbc.execute("ALTER TABLE " + table + " ALTER COLUMN " + column + " TYPE TEXT");
-            // runtime migration fix
             log.info("ColumnMigration: {}.{} successfully widened to TEXT", table, column);
 
         } catch (Exception e) {
